@@ -1,0 +1,423 @@
+---
+title: "Skills: Intro to Software in OR"
+author: "Zohaad Fazal"
+date: "1/21/2020"
+output: pdf_document
+header-includes:
+- \usepackage{caption}
+- \usepackage{multirow}
+urlcolor: blue
+bibliography: bibliography.bib
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# A0: Investment Plan I
+## Q1: Linear program formulation and solution
+Fox Enterprises needs to make a decision which of 6 available projects they want to invest in over a period of 4 years. They can decide to fully fund, partially fund, or not fund a project at all. Yearly cash outlays are given per project per year, available funds per year are also given. At the end of the 4 years each project pays out an expected return which Fox Enterprises hopes to maximize. Note that if a project is partially funded, only a fraction is paid per year and the return at the end is proportional to this fraction.
+
+Fox Enterprises would like to find the optimal project mix to maximize expected returns.
+
+* __parameters__
+  + $r_i$: expected return for project $i\in P$.
+  + $c_{ij}$: cash outlay for project $i\in P$ in year $j\in Y$.
+  + $f_j$: available funds in year $j\in Y$.
+* __variables__
+  + $x_i$: fraction of project $i\in P$ to undertake.
+* __objective function__
+
+\begin{equation}
+\max \sum_{i\in P} r_ix_i
+\end{equation}
+
+* __constraints__
+\begin{equation}
+\sum_{i\in P}c_{ij}x_i \leq f_j,\; \forall j\in Y
+\end{equation}
+\begin{equation}
+x_i\in[0,1]\quad\text {for } i\in P
+\end{equation}
+  - (1): Maximizes the fractional returns.
+  - (2): We can't exceed the yearly available funds.
+  - (3): The percentage, or fraction, of each project must lie between 0 and 1.
+
+* __output__
+
+The optimal value is 176.88651 (rounded), and the optimal project mix is given in the following table:
+
+\begin{center}
+\captionof{table}{Optimal project mix}
+\begin{tabular}{|l|r|} \hline
+\textbf{Variable} & \textbf{Fraction}  \\ \hline
+$x_1$ & 1  \\ \hline
+$x_2$ & 1  \\ \hline
+$x_3$ & 1 \\ \hline
+$x_4$ & 1 \\ \hline
+$x_5$ & 0.84 \\ \hline
+$x_6$ & 0 \\ \hline
+\end{tabular}
+\end{center}
+
+To maximize expected returns Fox Enterprises needs to fully invest in projects 1 through 4, invest 84% in project 5 and not invest in project 6. The optimal expected return is then \$176,886.51. 
+
+## Q2
+### (a) Binding constraints
+To find the binding constraints we check which constraints have 0 slack.
+
+\begin{center}
+\captionof{table}{Slack values}
+\begin{tabular}{|l|r|} \hline
+\textbf{Slack variable} & \textbf{Value}  \\ \hline
+$w_1$ & 13.452  \\ \hline
+$w_2$ & 9.803  \\ \hline
+$w_3$ & 3.217 \\ \hline
+$w_4$ & 0 \\ \hline
+\end{tabular}
+\end{center}
+
+So the 4th constraint is binding.
+
+### (b) Increasing RHS of binding constraints
+The gain for increasing the binding constraint with one unit is the shadow price. The shadow price for the 4th constraint is 3.21746 (rounded).
+
+Note that since one unit represents \$1000, we would gain \$3,217.46.
+
+### (c) Increasing project 6's return
+To find out how much we can increase the return of project 6 without changing the optimal solution we look at the upper bound of the optimality range for project 6. This is 6.06349, so we can increase the return of project 6 to \$6,063.49.
+
+## Q3: Additional features
+To implement the additional feature that if a portion of project 2 is undertaken then at least an equal portion of project 6 must be undertaken:
+
+\begin{equation}
+x_6 \geq x_2
+\end{equation}
+
+To implement the additional feature that last year's remaining funds can be used for the current year, we reformulate the constraints as follows
+
+\begin{equation}
+\begin{aligned}
+\mathrm{for}\; j=1:&\quad \sum_ic_{i1}x_i &&+w_1 =f_1\\
+\mathrm{for}\; j>1:&\quad \sum_ic_{ij}x_i &-w_{j-1}&+w_j=f_j
+\end{aligned}
+\end{equation}
+
+Where $w_j\in \mathbb{R}_+$ represents the slacks, and we add the slack of last year's constraint to the current year's constraint's right hand side. In (5) we subtract it from the left hand side, which is equivalent to adding it to the right hand side.  
+
+Note that since we manually added the slack variables, the constraints become equality constraints.
+
+The optimal value is now 201.62757 (rounded), and the optimal project mix is given in the following table:
+
+\begin{center}
+\captionof{table}{Optimal project mix}
+\begin{tabular}{|l|r|} \hline
+\textbf{Variable} & \textbf{Fraction}  \\ \hline
+$x_1$ & 1  \\ \hline
+$x_2$ & 1  \\ \hline
+$x_3$ & 1 \\ \hline
+$x_4$ & 1 \\ \hline
+$x_5$ & 0.77 \\ \hline
+$x_6$ & 1 \\ \hline
+\end{tabular}
+\end{center}
+
+The optimal expected return is now \$201,627.57. Fox Enterprises needs to invest in all projects fully except project 5; it needs to invest 77%.
+
+# B0: Capacitated Facility Location I
+## Q1: Mixed integer linear program formulation
+TrendCoats is a manufacturer that needs to make several decisions to meet an increasing demand of jeans in the North American markets. The first decision is whether to open a new production plant in Wichita or to increase the capacity of the existing plant in Denver. This is an exclusive disjunction, so they may not do both. The second decision is whether to increase the capacity of their warehouses in Chicago and Salt Lake City.
+
+TrendCoats would like to minimize total shipping costs with the addition of the costs associated to the aforementioned decisions.
+
+* __parameters__
+  + $d_m$: the demand for market $m\in M$, $M=\{\text{Seattle, Sacramento, Houston, Toronto, Miami, Detroit}\}$, $d_m\in\mathbb N_0$.
+  + $c_{pw}$: the cost per 1000 units to transport from plant $p\in P$ to warehouse $w\in W$, $P=\{\text{Denver, Wichita}\}$, $W=\{\text{Chicago, Salt Lake City}\}$.
+  + $c_{wm}$: the cost per 1000 units to transport from warehouse $w\in W$ to market $m\in M$.
+* __variables__
+  + $f_{p,w}$: the atomic flow from plant $p\in P$ to warehouse $w\in W$, $f_{p,w}\in \mathbb N_0$.
+  + $f_{w,m}$: the atomic flow from warehouse $w\in W$ to market $m\in M$, $f_{w,m}\in \mathbb N_0$.
+  + $z_D$: the decision whether to increase the Denver plant's capacity, $z_D\in \{0,1\}$.
+  + $z_W$: the decision whether to open a new plant in Wichita, $z_W\in \{0,1\}$.
+  + $z_w$: the decision whether to increase warehouse capacity for warehouse $w\in W$, $z_w\in\{0,1\}$. Also, we use $z_C = z_{\text{Chicago}}$ and $z_S=z_{\text{Salt Lake City}}$.
+* __objective function__
+\begin{equation}
+\min \sum_{p\in P} \sum_{w\in W} c_{p,w}f_{p,w} + \sum_{w\in W}\sum_{m\in M} c_{w,m}f_{w,m} + 1500000z_D + 2000000z_W + 250000z_C + 200000z_S
+\end{equation}
+
+* __constraints__
+\begin{equation}
+z_D + z_W \leq 1
+\end{equation}
+\begin{equation}
+\sum_{w\in W}f_{\text{Denver},w} -1000z_D \leq 1500
+\end{equation}
+\begin{equation}
+\sum_{w\in W}f_{\text{Wichita},w}-1500z_W \leq 0
+\end{equation}
+\begin{equation}
+\sum_{m\in M}f_{w,m} -1000z_w \leq 1000,\; \forall w\in W
+\end{equation}
+\begin{equation}
+\sum_{p\in P}f_{p,w}-\sum_{m\in M}f_{w,m}=0,\; \forall w\in W
+\end{equation}
+\begin{equation}
+\sum_{w\in W}f_{w,m}=d_m,\; \forall m\in M
+\end{equation}
+\begin{equation}
+f_{p,w} \in \mathbb N_0, \; \forall p\in P,\; \forall w\in W
+\end{equation}
+\begin{equation}
+f_{w,m} \in \mathbb N_0, \; \forall w\in W,\; \forall m\in M
+\end{equation}
+\begin{equation}
+z_D, z_W, z_C, z_S \in \{0,1\}
+\end{equation}
+  - (6): Minimize over the cost from the plants to the warehouses and the warehouses to the markets. Add \$1.5MM if the Denver plant's capacity is increased, add \$2MM if the plant in Wichita is opened. Finally add \$250k if the Chicago warehouse's capacity is increased and \$200k if the Salt Lake City warehouse's capacity is increased.
+  - (7): This ensures that the exclusive disjunction is satisfied, either to increase the Denver plant's capacity or to open a plant in Wichita, but not both.
+  - (8): Capacity constraint for the Denver plant, if it's capacity is increased (measured by $z_D$), we add 1000 thousand's of units. 
+  - (9): Capacity constraint for the Wichita plant, if it is opened (measured by $z_W$), we set it's capacity to 1500 thousand's of units, otherwise 0.
+  - (10): Capacity constraints for the warehouses, if a warehouse's capacity is increased (measured by $z_w$), we add 1000 thousand's of units.
+  - (11): At a warehouse, the incoming flow from the plants must equal the outgoing flow to the markets.
+  - (12): Demand constraints for the markets, all the incoming flow must equal the demand for a given market.
+  - (13): Flows from plants to warehouses must be non-negative integers.
+  - (14): Flows from warehouses to markets must be non-negative integers.
+  - (15): The decision variables must be binary, note that this also imples that $z_w\in\{0,1\},\;\forall w\in W$.
+  
+## Q2: Solution
+
+The optimal objective value found is 2,139,490, that is, the cheapest shipping costs for TrendCoats that satisfy the demand are \$2,139,490.
+
+The decisions TrendCoats needs to make are:
+
+\begin{center}
+\captionof{table}{Decisions to achieve optimum}
+\begin{tabular}{|l|l|r|} \hline
+\textbf{Optimal decision variables} & \textbf{Choice} & \textbf{Decision}  \\ \hline
+$z_D^*=1$ & increase Denver plant capacity & True  \\ \hline
+$z_W^*=0$ & open Wichita plant & False  \\ \hline
+$z_C^*=0$ & increase Chicago warehouse capacity & False \\ \hline
+$z_S^*=1$ & increase Salt Lake City warehouse capacity & True \\ \hline
+\end{tabular}
+\end{center}
+
+The flows from the plants to the warehouses are:
+
+\begin{center}
+\captionof{table}{Flows from pants to warehouses}
+\begin{tabular}{|c|cc|c|} \hline
+\text{Flows in 1000's of units} & \text{Chicago} & \text{Salt Lake City} &\textbf{Capacity} \\ \hline
+\text{Denver} & 820 & 1570  &2500\\ 
+\text{Wichita} & 0 & 0 & 0\\ \hline
+\textbf{Capacity} & 1000 & 2000&\\ \hline
+\end{tabular}
+\end{center}
+
+The flows from the warehouses to the markets are:
+
+\begin{center}
+\captionof{table}{Flows from warehouses to markets}
+\begin{tabular}{|c|cccccc|} \hline
+\text{Flows in 1000's of units} & \text{Seattle} & \text{Sacramento}& \text{Houston}& \text{Toronto}& \text{Miami}& \text{Detroit}  \\ \hline
+\text{Chicago} & {0} & {0} & {0}& {500}& {0}& {320}  \\ 
+\text{Salt Lake City}  & {480} & {420}& {220}& {0}& {450}& {0}\\ \hline
+\end{tabular}
+\end{center}
+
+# C0: The Bin Packing Problem
+
+## Q1: Integer linear program formulation and relaxation (Q3)
+
+For a given set of items $I=\{1,\dots,n\}$ each having size $s_i\in[0,1]$ for $i\in I$ we must determine an allocation of items to bins of size 1, that minimizes the number of bins used.
+
+Note that in the worst case, $s_i\in(\frac{1}{2},1]$ for all $i\in I$, then $n$ bins will be used. This is an upper bound so in the worst case we need $n$ bins. Let us denote the bins as $B=\{1,\dots,n\}$, each having size 1.
+
+* __parameters__
+  + $s_i$: size of item $i\in I$, $s_i\in[0,1]$.
+* __variables__
+  + $b_j$: decision variable whether bin $j\in B$ is used, $b_j\in \{0,1\}$.
+  + $x_{ij}$: decision variable whether item $i\in I$ is placed in bin $j\in B$, $x_{ij}\in\{0,1\}$.
+* __objective function__
+\begin{equation}
+\min \sum_{j\in B}b_j
+\end{equation}
+* __constraints__
+\begin{equation}
+\sum_{i\in I}s_ix_{ij}-b_j\leq 0,\; \forall j\in B
+\end{equation}
+\begin{equation}
+\sum_{j\in B}x_{ij} = 1,\; \forall i\in I
+\end{equation}
+\begin{equation}
+b_j\in\{0,1\},\;\forall j\in B
+\end{equation}
+\begin{equation}
+x_{ij}\in\{0,1\},\;\forall i\in I,\;\forall j\in B
+\end{equation}
+  + (16): minimizes the number of bins used.
+  + (17): ensures both that if a bin is used, its contents don't exceed the capacity of 1, and if a bin is not used, its contents don't exceed the capacity of 0.
+  + (18): ensures that every item is placed in exactly one bin.
+  + (19): whether a bin is used is a binary variable.
+  + (20): whether an item is placed in a bin is a binary variable.
+  
+The linear program relaxation is done by relaxing (19) and (20) to:
+
+\begin{equation}
+b_j\in[0,1],\;\forall j\in B
+\end{equation}
+\begin{equation}
+x_{ij}\in[0,1],\;\forall i\in I,\;\forall j\in B
+\end{equation}
+
+## Q2-Q5: Results
+
+The limit of the computational time of CPLEX was set to 3600. These are the results we obtained:
+
+\begin{center}
+\captionof{table}{Results}
+\begin{tabular}{c|c|c|c|c|c}
+\text{Instance} & \text{Optimal} & \text{Run time} & \text{Optimal}& \text{Run time}& \text{GAP}\\ 
+&\text{value (ILP)}&\text{ILP (ms)}&\text{value (LP)}&\text{LP (ms)}&\\
+\hline
+1&4&108&3.53&7&0.1175 \\
+2&5&13&4.21&4&0.158 \\
+3&16&3701&14.12&11&0.1175 \\
+4&15&110&14.47&10&0.0353 \\
+5&25&626&23.82&31&0.0472 
+\end{tabular}
+\end{center}
+
+## Q6: Context of instance 1's solution
+
+For instance 1, in the ILP, we obtain the optimal objective value of 4 and the following item placements:
+
+\begin{center}
+\captionof{table}{Item placements instance 1}
+\begin{tabular}{c|cccccccccc}
+\text{rows: items}\\
+\text{columns: bins}&1&2&3&4&5&6&7&8&9&10\\ \hline
+1&0&0&0&0&0&1&0&0&0&0 \\
+2&0&0&0&0&1&0&0&0&0&0 \\
+3&0&0&1&0&0&0&0&0&0&0 \\
+4&1&0&0&0&0&0&0&0&0&0 \\
+5&0&0&0&0&0&1&0&0&0&0 \\
+6&1&0&0&0&0&0&0&0&0&0 \\
+7&0&0&1&0&0&0&0&0&0&0 \\
+8&1&0&0&0&0&0&0&0&0&0 \\
+9&0&0&1&0&0&0&0&0&0&0 \\
+10&0&0&0&0&1&0&0&0&0&0 \\
+\end{tabular}
+\end{center}
+
+So we can see that bin 1 has items 4, 6, and 8. Bin 3 has items 3, 7, and 9. Bin 5 has items 2, and 10. Finally, bin 6 has items 1 and 5. The rest of the bins are not used.
+
+# D0: Facility Location
+
+## Q1: Algorithm for solving shortest paths
+We used the Floyd-Warshall algorithm for solving for all pairs shortest paths. The pseudo code is given:
+
+```{r, eval=FALSE}
+let dist be a |V| × |V| array of minimum distances initialized to infinity
+for each edge (u, v) do
+    dist[u][v] ← w(u, v)  // The weight of the edge (u, v)
+for each vertex v do
+    dist[v][v] ← 0
+for k from 1 to |V|
+    for i from 1 to |V|
+        for j from 1 to |V|
+            if dist[i][j] > dist[i][k] + dist[k][j] 
+                dist[i][j] ← dist[i][k] + dist[k][j]
+            end if
+
+```
+The asymptotic running time of this algorithm is $\Theta(|V|^3)$.
+
+The pseudo code for the Floyd-Warshall algorithm is retrieved from [@wiki:Floyd-Warshall_algorithm] without further references provided, due to it being original work.
+
+## Q2: Problem in the literature
+A problem like this is called the uncapacitated facility location problem in the literature [ @10.1007/3-540-47867-1_18]. A key difference with @10.1007/3-540-47867-1_18 is that our potential facility locations $\mathcal F$ are the same as the demand points $\mathcal D$, that is, $\mathcal F = \mathcal D$.
+
+Another key difference is that fixed costs are equal for each potential facility location. Hence we are able to omit $\sum_{i\in\mathcal F}f_iy_i$ from our objective function, where $f_i$ is the fixed cost for potential facility $i\in\mathcal F$, and $y_i$ is the decision variable whether facility $i\in\mathcal F$ is opened. $y_i$ is analogous to $x_j$ for $j\in R$ in our integer linear program formulation, where $R$ is the set of regions. This integer linear program formulation is described in the next section.
+
+Since our problem assumes fixed costs are equal for every potential facility $j\in R$ and don't longer consider these costs, this problem reduces to the $k$-median problem [@scipbook:Facility_location_problems]. @scipbook:Facility_location_problems explain that the $k$-median problem is a variant of the uncapacitated facility location problem.
+
+## Q3: Integer Linear Program
+We have $n$ regions, with an $n\times n$ distance matrix containing all pairs shortest paths: $\{d_{ij}\}_{i,j=1}^n$. We must decide where to place $p<n$ facilities to minimize the total distance traveled over customers in all regions.
+
+* __parameters__
+  + $n$: number of regions. Let the set of regions be $R=\{1,\dots,n\}$.
+  + $p$: number of facilities that must be placed.
+  + $d_{ij}$: distance from region $i\in R$ to region $j\in R$, $d_{ij}\in[0,\infty)$. Note that $d_{ii} = 0$ for all $i\in R$.
+* __variables__
+  + $x_j$: the decision whether to open a facility in region $j\in R$, $x_j\in\{0,1\}$.
+  + $c_{ij}$: the decision whether customers in region $i\in L$ go to the facility in region $j\in R$, $c_{ij}\in \{0,1\}$.
+* __objective function__
+\begin{equation}
+\min \sum_{i \in R}\sum_{j \in R} d_{ij}c_{ij}
+\end{equation}
+* __constraints__
+\begin{equation}
+\sum_{j\in R}x_j = p
+\end{equation}
+\begin{equation}
+c_{ij} - x_j \leq 0,\; \forall j \in R,\; \forall i\in R
+\end{equation}
+\begin{equation}
+\sum_{j\in R}c_{ij} = 1,\; \forall i \in R
+\end{equation}
+\begin{equation}
+x_j \in \{0,1\},\; \forall j\in R
+\end{equation}
+\begin{equation}
+c_{ij}\in \{0,1\},\;  \forall i \in R,\; \forall j\in R
+\end{equation}
+  + (23): minimizes over the total distance from all customers at regions $i$ to regions $j$.
+  + (24): ensures that there are exactly $p$ facilities placed.
+  + (25): ensures that customers can only travel from region $i$ to region $j$ if there is a facility placed at region $j$.
+  + (26): ensures that a customer in region $i$ travels to precisely one region $j$.
+  + (27): whether a facility is openend in region $j$ is a decision variable.
+  + (28): whether customer in region $i$ travels to region $j$ is a decision variable.
+
+## Q4: Results
+These are the results we obtained, only the running time for `cplex.solve()` was measured.
+
+\begin{center}
+\captionof{table}{Results}
+\begin{tabular}{|c|c|c|} \hline
+& \text{Optimal value} & \text{Run time (ms)}\\ \hline
+\multicolumn{3}{|c|}{Instance 1} \\ \hline
+$p=2$ & 20.5 & 28 \\ 
+$p=3$ & 15.4 & 23 \\ 
+$p=4$ & 10.0 & 7  \\ \hline
+\multicolumn{3}{|c|}{Instance 2} \\ \hline
+$p=2$ & 69.5 & 39 \\ 
+$p=3$ & 51.4 & 22 \\ 
+$p=4$ & 41.5 & 16 \\ \hline
+\multicolumn{3}{|c|}{Instance 3} \\ \hline
+$p=2$ & 31.8 & 40 \\ 
+$p=3$ & 21.5 & 18 \\ 
+$p=4$ & 16.7 & 21 \\ \hline
+\multicolumn{3}{|c|}{Instance 4} \\ \hline
+$p=2$ & 57.6 & 75  \\ 
+$p=3$ & 49.3 & 62  \\ 
+$p=4$ & 42.5 & 225 \\ \hline
+\multicolumn{3}{|c|}{Instance 5} \\ \hline
+$p=2$ & 75.9 & 133 \\ 
+$p=3$ & 62.9 & 174 \\ 
+$p=4$ & 54.8 & 148 \\ \hline
+\end{tabular}
+\end{center}
+
+## Q5: Context of instance 1's solution
+
+We provide the optimal value, that is, the minimized traveling distance. We also describe the placements of the facilities along with the customer allocations to these facilities that minimize the total traveling distance.
+
+For instance 1, with $p=2$, we obtain the optimal objective value of 20.5. Facilities are opened at regions 1 and 9. The customers of region 1 go to the facility at region 1, and the customers of the other regions go to the facility at region 9.
+
+For instance 1, with $p=3$, we obtain the optimal objective value of 15.4. Facilities are opened at regions 1, 6, and 9. The customers of region 1 go to the facility at region 1, customers of region 6 go to the facility at region 6, and the customers of the other regions go to the facility at region 9.
+
+For instance 1, with $p=4$, we obtain the optimal objective value of 10.0. Facilities are opened at regions 1, 2, 6, and 10. Customers from regions 1, 6, and 10 go to the facilities at their respective regions, and the customers of the other regions go to the facility at region 2.
+
+The customer allocation matrices from where this is derived can be found by running the code.
+
+# References
