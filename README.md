@@ -1,5 +1,7 @@
 # Intro to Software in OR (Operations Research)
 
+__Grade obtained: 10/10__
+
 In this project I use IBM's [CPLEX](https://www.ibm.com/products/ilog-cplex-optimization-studio/details) library to solve linear programs, my write-up can be found [here](https://github.com/zohaad/Intro-to-Software-in-OR/blob/master/ZohaadFazal_report.pdf).
 
 The Assignments it solves (A0, B0, C0, and D0) can be found [here](https://github.com/zohaad/Intro-to-Software-in-OR/blob/master/Assignments.pdf).
